@@ -8,8 +8,6 @@ It is possible to turn on logging through an azure vm (https://learn.microsoft.c
 One could view this type telemetry by using commerical EDR products or using a tool called SkilkETW. To view the events we would need
 to see the Microsoft-Windows-DotNETRuntime. 
 
-https://learn.microsoft.com/en-us/windows/win32/etw/images/etdiag2.png
-
 We can see this by running "logman query providers | findstr "Microsoft-Windows-DotNETRuntime". We will explain the logman later on.
 If we ran this command we will see the provider as well as it's GUID.
 

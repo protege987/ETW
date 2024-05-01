@@ -85,6 +85,8 @@ The Event Tracing API is broken into three distinct components:
     Providers, which provide the events
     Consumers, which consume the events
 
+!https://learn.microsoft.com/en-us/windows/win32/etw/images/etdiag2.png
+
 From the command ran earlier (logman) this is a controller. It is able to stop and start as well as create a event trace session.
 You can view more about it by running logman /? as seen below.
 

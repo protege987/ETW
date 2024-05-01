@@ -1,0 +1,143 @@
+While going through constructed Defense course we were learning about ETW (Event tracing for windows) and how it could be used as a logging source.
+By default this is not on. Do not know the reason it is not on. ETW is a way to log telemetry on the kernel-level. 
+For example if we were to use a C2 to load a binary into .net assembly to run against a victim machine this would not show in windows event viewer.
+As this type of telemetry is not logged by windows event viewer by default. 
+
+It is possible to turn on logging through an azure vm (https://learn.microsoft.com/en-us/azure/azure-monitor/agents/data-sources-event-tracing-windows)
+                                                                           
+One could view this type telemetry by using commerical EDR products or using a tool called SkilkETW. To view the events we would need
+to see the Microsoft-Windows-DotNETRuntime. 
+
+We can see this by running "logman query providers | findstr "Microsoft-Windows-DotNETRuntime". We will explain the logman later on.
+If we ran this command we will see the provider as well as it's GUID.
+
+Microsoft-Windows-DotNETRuntime          {E13C0D23-CCBC-4E12-931B-D9CC2EEE27E4}
+Microsoft-Windows-DotNETRuntimeRundown   {A669021C-C450-4609-A035-5AF59AF4DF18}
+
+For more details about this runtime we can run "logman query providers "Microsoft-Windows-DotNETRuntime" in cmd
+
+Provider                                 GUID
+-------------------------------------------------------------------------------
+Microsoft-Windows-DotNETRuntime          {E13C0D23-CCBC-4E12-931B-D9CC2EEE27E4}
+
+Value               Keyword              Description
+-------------------------------------------------------------------------------
+0x0000000000000001  GCKeyword            GC
+0x0000000000000002  GCHandleKeyword      GCHandle
+0x0000000000000004  FusionKeyword        Binder
+0x0000000000000008  LoaderKeyword        Loader
+0x0000000000000010  JitKeyword           Jit
+0x0000000000000020  NGenKeyword          NGen
+0x0000000000000040  StartEnumerationKeyword StartEnumeration
+0x0000000000000080  EndEnumerationKeyword StopEnumeration
+0x0000000000000400  SecurityKeyword      Security
+0x0000000000000800  AppDomainResourceManagementKeyword AppDomainResourceManagement
+0x0000000000001000  JitTracingKeyword    JitTracing
+0x0000000000002000  InteropKeyword       Interop
+0x0000000000004000  ContentionKeyword    Contention
+0x0000000000008000  ExceptionKeyword     Exception
+0x0000000000010000  ThreadingKeyword     Threading
+0x0000000000020000  JittedMethodILToNativeMapKeyword JittedMethodILToNativeMap
+0x0000000000040000  OverrideAndSuppressNGenEventsKeyword OverrideAndSuppressNGenEvents
+0x0000000000080000  TypeKeyword          Type
+0x0000000000100000  GCHeapDumpKeyword    GCHeapDump
+0x0000000000200000  GCSampledObjectAllocationHighKeyword GCSampledObjectAllocationHigh
+0x0000000000400000  GCHeapSurvivalAndMovementKeyword GCHeapSurvivalAndMovement
+0x0000000000800000  GCHeapCollectKeyword GCHeapCollect
+0x0000000001000000  GCHeapAndTypeNamesKeyword GCHeapAndTypeNames
+0x0000000002000000  GCSampledObjectAllocationLowKeyword GCSampledObjectAllocationLow
+0x0000000020000000  PerfTrackKeyword     PerfTrack
+0x0000000040000000  StackKeyword         Stack
+0x0000000080000000  ThreadTransferKeyword ThreadTransfer
+0x0000000100000000  DebuggerKeyword      Debugger
+0x0000000200000000  MonitoringKeyword    Monitoring
+
+Value               Level                Description
+-------------------------------------------------------------------------------
+0x00                win:LogAlways        Log Always
+0x02                win:Error            Error
+0x04                win:Informational    Information
+0x05                win:Verbose          Verbose
+
+PID                 Image
+-------------------------------------------------------------------------------
+0x00001498          C:\SilkService\SilkService.exe
+0x00000f10          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+0x0000025c          C:\Windows\System32\mmc.exe
+0x00000a5c          C:\Windows\System32\backgroundTaskHost.exe
+0x00000a5c          C:\Windows\System32\backgroundTaskHost.exe
+0x00001fac          C:\Windows\System32\WindowsPowerShell\v1.0\powershell_ise.exe
+0x00000460          C:\Windows\System32\backgroundTaskHost.exe
+0x00000460          C:\Windows\System32\backgroundTaskHost.exe
+0x00001af4          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+0x00001d04          C:\Program Files\WindowsApps\Microsoft.YourPhone_1.24032.123.0_x64__8wekyb3d8bbwe\PhoneExperienceHost.exe
+0x00001d04          C:\Program Files\WindowsApps\Microsoft.YourPhone_1.24032.123.0_x64__8wekyb3d8bbwe\PhoneExperienceHost.exe
+
+
+The command completed successfully.
+
+Let us step back. How does ETW work?
+From microsoft learn (https://learn.microsoft.com/en-us/windows/win32/etw/about-event-tracing)
+
+The Event Tracing API is broken into three distinct components:
+
+    Controllers, which start and stop an event tracing session and enable providers
+    Providers, which provide the events
+    Consumers, which consume the events
+
+From the command ran earlier (logman) this is a controller. It is able to stop and start as well as create a event trace session.
+You can view more about it by running logman /? as seen below.
+
+logman /?
+
+Microsoft ® Logman.exe (10.0.22621.1)
+
+Usage:
+  logman [create|query|start|stop|delete|update|import|export] [options]
+
+Verbs:
+  create                        Create a new data collector.
+  query                         Query data collector properties. If no name is given all data collectors are listed.
+  start                         Start an existing data collector and set the begin time to manual.
+  stop                          Stop an existing data collector and set the end time to manual.
+  delete                        Delete an existing data collector.
+  update                        Update an existing data collector's properties.
+  import                        Import a data collector set from an XML file.
+  export                        Export a data collector set to an XML file.
+
+Now we know about 1 controller as they are more but I've only read about this one (logman) we'll get to the rest another day maybe.
+We can see logman is able stop, start, create and delete an event trace.
+With logman we are able to see the providers as well which there are many windows built-in providers but also
+many third party providers as well.
+
+Considering there are so many providers they would be generating a lot of events if they were being logged.
+Note: if using using logman use | findstr "cat" to help your eyes
+Going back to the following command : 
+
+Provider                                 GUID
+-------------------------------------------------------------------------------
+Microsoft-Windows-DotNETRuntime          {E13C0D23-CCBC-4E12-931B-D9CC2EEE27E4}
+
+Value               Keyword              Description
+-------------------------------------------------------------------------------
+0x0000000000000001  GCKeyword            GC
+0x0000000000000002  GCHandleKeyword      GCHandle
+0x0000000000000004  FusionKeyword        Binder
+0x0000000000000008  LoaderKeyword        Loader
+0x0000000000000010  JitKeyword           Jit
+
+We can see a keyword. What is a keyword?
+The keyword tell us about the processes (events) the provider generates while it is running. There are tools such as ETWexplorer (https://github.com/zodiacon/EtwExplorer) which
+can provide more detailed information. ETW is also viewable in windows resource monitor. 
+
+Will add more after sleep o/
+
+Resources :
+https://www.ired.team/miscellaneous-reversing-forensics/windows-kernel-internals/etw-event-tracing-for-windows-101
+https://bmcder.com/blog/a-begginers-all-inclusive-guide-to-etw
+https://nasbench.medium.com/a-primer-on-event-tracing-for-windows-etw-997725c082bf
+https://learn.microsoft.com/en-us/message-analyzer/system-etw-provider-event-keyword-level-settings
+https://learn.microsoft.com/en-us/windows/win32/etw/about-event-tracing
+https://github.com/mandiant/SilkETW
+https://github.com/nasbench/EVTX-ETW-Resources
+https://learn.microsoft.com/en-us/azure/azure-monitor/agents/data-sources-event-tracing-windows
